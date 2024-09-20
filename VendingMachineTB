@@ -1,0 +1,75 @@
+`timescale 1ns / 1ps
+
+module VendingMachineTB;
+
+    // Inputs
+    reg clk;
+    reg reset;
+    reg [1:0] coin_in; // Coin denominations (00 = no coin, 01 = 2rs, 10 = 5rs, 11 = 10rs)
+    reg [2:0] item_select; // Item selection (001 = Candy, 010 = Chocolate, etc.)
+    reg buy;
+    reg multiple_items;
+    reg coin_accept;
+
+    // Outputs
+    wire [2:0] item_dispensed;
+    wire [7:0] change_dispensed;
+    wire error;
+    wire [7:0] current_balance;
+
+    // Instantiate the Vending Machine module
+    VendingMachine uut (
+        .clk(clk),
+        .reset(reset),
+        .coin_in(coin_in),
+        .item_select(item_select),
+        .buy(buy),
+        .multiple_items(multiple_items),
+        .coin_accept(coin_accept),
+        .item_dispensed(item_dispensed),
+        .change_dispensed(change_dispensed),
+        .error(error),
+        .current_balance(current_balance)
+    );
+
+    // Clock generation
+    always #5 clk = ~clk; // 10ns clock period
+
+    initial begin
+        // Initialize Inputs
+        clk = 0;
+        reset = 1;
+        coin_in = 2'b00;
+        item_select = 3'b000;
+        buy = 0;
+        multiple_items = 0;
+        coin_accept = 0;
+
+        // Wait for 10ns for reset to complete
+        #10 reset = 0;
+
+        // Start the vending machine operation
+        // Step 1: Insert multiple coins (20rs and 10rs)
+        #10 coin_accept = 1;
+        #10 coin_in = 2'b11; // Insert 10rs
+        #10 coin_in = 2'b11; // Insert another 10rs (total 20rs now)
+        #10 coin_in = 2'b10; // Insert 5rs (total 25rs now)
+        #10 coin_in = 2'b01; // Insert 2rs (total 27rs now)
+
+        // Step 2: Select multiple items (Candy = 5rs, Chocolate = 10rs)
+        #10 multiple_items = 1;
+        buy = 1;
+        item_select = 3'b001; // Select Candy (5rs)
+        #10 item_select = 3'b010; // Select Chocolate (10rs)
+
+        // Step 3: Wait for transaction to complete
+        #10 buy = 0;
+        multiple_items = 0;
+
+        // Step 4: Check the output (27rs - 5rs - 10rs = 12rs)
+        #10;
+        
+        // End the simulation
+        #50 $finish;
+    end
+endmodule
